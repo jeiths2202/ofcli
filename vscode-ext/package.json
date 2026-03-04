@@ -1,0 +1,89 @@
+{
+  "name": "ofkms-chat",
+  "displayName": "OFKMS Chat",
+  "description": "OpenFrame KMS — AI-powered Q&A for TmaxSoft OpenFrame products",
+  "version": "0.1.0",
+  "publisher": "tmaxsoft",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ofkms",
+          "title": "OFKMS",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "ofkms": [
+        {
+          "type": "webview",
+          "id": "ofkms.chatView",
+          "name": "Chat"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "ofkms.clearChat",
+        "title": "OFKMS: Clear Chat"
+      },
+      {
+        "command": "ofkms.checkHealth",
+        "title": "OFKMS: Check Health"
+      }
+    ],
+    "configuration": {
+      "title": "OFKMS",
+      "properties": {
+        "ofkms.apiUrl": {
+          "type": "string",
+          "default": "http://192.168.8.11:12830",
+          "description": "OFKMS API server URL"
+        },
+        "ofkms.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for authentication"
+        },
+        "ofkms.defaultLanguage": {
+          "type": "string",
+          "default": "",
+          "enum": ["", "ja", "ko", "en"],
+          "enumDescriptions": ["Auto-detect", "Japanese", "Korean", "English"],
+          "description": "Default response language (empty = auto-detect)"
+        },
+        "ofkms.defaultProduct": {
+          "type": "string",
+          "default": "",
+          "description": "Default product filter (empty = auto-detect)"
+        },
+        "ofkms.timeout": {
+          "type": "number",
+          "default": 120,
+          "description": "API request timeout in seconds"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "dompurify": "^3.2.0",
+    "highlight.js": "^11.10.0",
+    "marked": "^15.0.0"
+  }
+}

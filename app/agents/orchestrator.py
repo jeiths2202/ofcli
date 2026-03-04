@@ -9,8 +9,10 @@ Phase 4: OFCode Parser (코드 쿼리 시)
 Phase 5: Fallback (Phase 1~4 max_score < FALLBACK_THRESHOLD 시)
 Phase 6: Response Generation (항상)
 """
+import json
 import logging
 import time
+from typing import AsyncGenerator, Dict
 
 from app.agents.code_agent import CodeAgent
 from app.agents.domain_agent import DomainAgent
@@ -96,6 +98,78 @@ class Orchestrator:
             f"{total}ms"
         )
         return response
+
+    async def execute_streaming(self, query: str) -> AsyncGenerator[Dict, None]:
+        """SSE streaming — yield phase events + final answer"""
+        t0 = time.perf_counter()
+        state = PipelineState(query_plan=QueryPlan(raw_query=query))
+
+        # Phase 0
+        pt0 = time.perf_counter()
+        await self.query_agent.execute(state)
+        plan = state.query_plan
+        yield {"event": "phase", "data": json.dumps({
+            "phase": 0, "name": "query_analysis", "status": "complete",
+            "time_ms": int((time.perf_counter() - pt0) * 1000),
+        })}
+
+        # Phase 1
+        pt0 = time.perf_counter()
+        await self.search_agent.execute(state)
+        yield {"event": "phase", "data": json.dumps({
+            "phase": 1, "name": "embedding_search", "status": "complete",
+            "time_ms": int((time.perf_counter() - pt0) * 1000),
+        })}
+
+        # Phase 2
+        pt0 = time.perf_counter()
+        await self.domain_agent.execute(state)
+        yield {"event": "phase", "data": json.dumps({
+            "phase": 2, "name": "domain_knowledge", "status": "complete",
+            "time_ms": int((time.perf_counter() - pt0) * 1000),
+        })}
+
+        # Phase 3
+        pt0 = time.perf_counter()
+        await self.code_agent.execute_web_search(state)
+        yield {"event": "phase", "data": json.dumps({
+            "phase": 3, "name": "ofcode_web", "status": "complete",
+            "time_ms": int((time.perf_counter() - pt0) * 1000),
+        })}
+
+        # Phase 4 (conditional)
+        if plan.requires_code_analysis:
+            pt0 = time.perf_counter()
+            await self.code_agent.execute_parser(state)
+            yield {"event": "phase", "data": json.dumps({
+                "phase": 4, "name": "ofcode_parser", "status": "complete",
+                "time_ms": int((time.perf_counter() - pt0) * 1000),
+            })}
+
+        # Phase 5 (conditional fallback)
+        if state.needs_fallback:
+            state.fallback_triggered = True
+            pt0 = time.perf_counter()
+            await self.fallback_agent.execute(state)
+            yield {"event": "phase", "data": json.dumps({
+                "phase": 5, "name": "fallback", "status": "complete",
+                "time_ms": int((time.perf_counter() - pt0) * 1000),
+            })}
+
+        # Phase 6: Response
+        response = await self.response_agent.execute(state)
+        total = int((time.perf_counter() - t0) * 1000)
+        response.total_time_ms = total
+
+        yield {"event": "answer", "data": json.dumps({
+            "answer": response.answer,
+            "confidence": response.overall_confidence,
+            "language": response.answer_language,
+            "intent": response.query_intent,
+            "product": response.product,
+        })}
+
+        yield {"event": "done", "data": json.dumps({"total_time_ms": total})}
 
     async def close(self):
         await self.search_agent.close()

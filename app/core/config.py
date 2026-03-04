@@ -32,10 +32,17 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "ragdb"
     POSTGRES_USER: str = "raguser"
     POSTGRES_PASSWORD: str = "ragpassword123"
+    DB_POOL_MIN_SIZE: int = 2
+    DB_POOL_MAX_SIZE: int = 10
 
     # Pipeline
     FALLBACK_THRESHOLD: float = 0.3
     SEARCH_TOP_K: int = 10
+
+    # API Server
+    API_KEYS: str = ""
+    API_HOST: str = "0.0.0.0"
+    API_PORT: int = 8000
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 

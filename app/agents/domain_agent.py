@@ -10,7 +10,7 @@ import time
 
 from app.agents.base import BaseAgent
 from app.agents.tools.qwen3_client import Qwen3Client
-from app.models.query import QueryIntent, QueryPlan
+from app.models.query import ComparisonTarget, QueryIntent, QueryPlan
 from app.models.search import (
     PhaseResult,
     PipelineState,
@@ -107,6 +107,16 @@ class DomainAgent(BaseAgent):
         confidence = min(chunks[0].score + 0.1, 1.0) if chunks else 0.0
         return answer, confidence
 
+    def _build_comparison_context(self, targets: list[ComparisonTarget]) -> str:
+        """비교 대상의 상위 제품 컨텍스트를 프롬프트에 주입"""
+        lines = []
+        for t in targets:
+            lines.append(
+                f"- {t.term}: 上位製品={t.parent_product}, "
+                f"分類={t.category}, 説明={t.description}"
+            )
+        return "\n".join(lines)
+
     async def _generate_llm(self, plan: QueryPlan, chunks: list) -> tuple:
         """비구조화 쿼리: Qwen3 LLM + RAG 컨텍스트"""
         ctx_parts = []
@@ -118,7 +128,28 @@ class DomainAgent(BaseAgent):
         context_text = "\n\n---\n\n".join(ctx_parts) if ctx_parts else "(検索結果なし)"
         system = _get_system_prompt(plan.language.value)
 
-        prompt = f"""## 検索結果
+        # 비교 의도 + 상위 제품 컨텍스트가 있으면 전용 프롬프트
+        if plan.intent == QueryIntent.COMPARISON and plan.comparison_targets:
+            hierarchy_ctx = self._build_comparison_context(plan.comparison_targets)
+            prompt = f"""## 比較対象の上位製品コンテキスト
+{hierarchy_ctx}
+
+## 検索結果
+{context_text}
+
+## 質問
+{plan.raw_query}
+
+## 回答指示
+以下の順序で体系的に比較してください:
+1. **上位製品レベル**: 各ツールが属する製品（例: CICS/OSC vs IMS/HiDB）の目的・位置づけの違い
+2. **サブシステムレベル**: 各ツールが担当するサブシステム内での役割の違い
+3. **ツール固有の詳細**: 具体的な構文、機能、設定方法の違い
+4. **まとめ表**: 主要な違いを表形式で整理
+
+## 回答"""
+        else:
+            prompt = f"""## 検索結果
 {context_text}
 
 ## 質問

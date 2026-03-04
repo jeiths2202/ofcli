@@ -29,6 +29,14 @@ class ProductMatch(BaseModel):
     matched_patterns: List[str] = Field(default_factory=list)
 
 
+class ComparisonTarget(BaseModel):
+    """비교 대상의 상위 제품 컨텍스트"""
+    term: str = Field(description="원래 용어 (예: BMS)")
+    parent_product: str = Field(default="", description="상위 제품 (예: CICS/OSC)")
+    category: str = Field(default="", description="분류 (예: 화면정의)")
+    description: str = Field(default="", description="간단한 설명")
+
+
 class QueryPlan(BaseModel):
     raw_query: str
     normalized_query: str = ""
@@ -40,3 +48,4 @@ class QueryPlan(BaseModel):
     error_codes: List[str] = Field(default_factory=list)
     command_names: List[str] = Field(default_factory=list)
     expansion_terms: List[str] = Field(default_factory=list)
+    comparison_targets: List[ComparisonTarget] = Field(default_factory=list)

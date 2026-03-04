@@ -31,7 +31,11 @@ class SearchAgent(BaseAgent):
     async def execute(self, state: PipelineState) -> None:
         plan = state.query_plan
         t0 = time.perf_counter()
-        product = plan.products[0].product_id if plan.products else None
+        # 비교 쿼리에서 복수 제품이 있으면 필터 해제 (양쪽 모두 검색)
+        if len(plan.products) > 1 and plan.comparison_targets:
+            product = None
+        else:
+            product = plan.products[0].product_id if plan.products else None
 
         # 1. BGE-M3 임베딩
         try:

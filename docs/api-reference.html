@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OFKMS API Reference v2.0</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #21262d;
+  --text: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --border: #30363d;
+  --accent: #58a6ff;
+  --accent-hover: #79c0ff;
+  --green: #3fb950;
+  --red: #f85149;
+  --yellow: #d29922;
+  --orange: #db6d28;
+  --code-bg: #0d1117;
+  --sidebar-width: 260px;
+  --code-panel-width: 420px;
+  --header-height: 56px;
+  --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-secondary: #f6f8fa;
+  --bg-tertiary: #eaeef2;
+  --text: #1f2328;
+  --text-secondary: #656d76;
+  --text-muted: #8b949e;
+  --border: #d0d7de;
+  --accent: #0969da;
+  --accent-hover: #0550ae;
+  --code-bg: #f6f8fa;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+/* ── Header ── */
+.header {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: var(--header-height);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; z-index: 100;
+}
+.header-title {
+  font-size: 16px; font-weight: 700; color: var(--text);
+  display: flex; align-items: center; gap: 10px;
+}
+.header-title .version {
+  font-size: 12px; font-weight: 400; color: var(--text-secondary);
+  background: var(--bg-tertiary); padding: 2px 8px; border-radius: 12px;
+}
+.header-actions { display: flex; gap: 8px; align-items: center; }
+.btn-theme, .btn-search {
+  background: var(--bg-tertiary); border: 1px solid var(--border);
+  color: var(--text-secondary); padding: 6px 12px; border-radius: 6px;
+  cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 4px;
+}
+.btn-theme:hover, .btn-search:hover { color: var(--text); border-color: var(--accent); }
+.kbd { font-size: 11px; background: var(--bg); padding: 1px 5px; border-radius: 3px; border: 1px solid var(--border); }
+/* ── Sidebar ── */
+.sidebar {
+  position: fixed; top: var(--header-height); left: 0; bottom: 0;
+  width: var(--sidebar-width); background: var(--bg-secondary);
+  border-right: 1px solid var(--border); overflow-y: auto;
+  padding: 16px 0;
+}
+.sidebar a {
+  display: block; padding: 6px 20px; color: var(--text-secondary);
+  text-decoration: none; font-size: 14px; transition: all 0.15s;
+}
+.sidebar a:hover { color: var(--text); background: var(--bg-tertiary); }
+.sidebar a.active { color: var(--accent); border-right: 2px solid var(--accent); background: var(--bg-tertiary); }
+.sidebar .section-label {
+  padding: 16px 20px 6px; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--text-muted); font-weight: 600;
+}
+/* ── Main Content ── */
+.main {
+  margin-left: var(--sidebar-width);
+  margin-top: var(--header-height);
+  display: flex;
+}
+.content {
+  flex: 1; max-width: calc(100% - var(--code-panel-width));
+  padding: 40px 48px;
+}
+.code-panel {
+  width: var(--code-panel-width);
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  padding: 40px 24px;
+  position: sticky; top: var(--header-height);
+  height: calc(100vh - var(--header-height));
+  overflow-y: auto;
+}
+/* ── Section ── */
+section { margin-bottom: 64px; scroll-margin-top: calc(var(--header-height) + 20px); }
+section h2 { font-size: 24px; font-weight: 700; margin-bottom: 16px; }
+section h3 { font-size: 18px; font-weight: 600; margin: 24px 0 12px; color: var(--text); }
+section p { color: var(--text-secondary); margin-bottom: 12px; }
+/* ── Method Badge ── */
+.method { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; font-family: var(--font-mono); margin-right: 8px; }
+.method.post { background: rgba(63, 185, 80, 0.15); color: var(--green); }
+.method.get { background: rgba(88, 166, 255, 0.15); color: var(--accent); }
+.endpoint-path { font-family: var(--font-mono); font-size: 15px; font-weight: 600; }
+/* ── Table ── */
+table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+th, td { text-align: left; padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 14px; }
+th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+td code { background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 13px; }
+.required { color: var(--red); font-size: 11px; font-weight: 600; }
+.optional { color: var(--text-muted); font-size: 11px; }
+/* ── Code Block ── */
+.code-block {
+  background: var(--code-bg); border: 1px solid var(--border);
+  border-radius: 8px; margin: 16px 0; overflow: hidden;
+}
+.code-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; background: var(--bg-tertiary); border-bottom: 1px solid var(--border);
+}
+.code-tabs { display: flex; gap: 0; }
+.code-tab {
+  padding: 4px 12px; font-size: 12px; color: var(--text-muted);
+  cursor: pointer; border: none; background: none; border-radius: 4px;
+}
+.code-tab.active { color: var(--text); background: var(--bg-secondary); }
+.copy-btn {
+  background: none; border: none; color: var(--text-muted);
+  cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 4px;
+}
+.copy-btn:hover { color: var(--text); background: var(--bg-secondary); }
+.code-content { display: none; }
+.code-content.active { display: block; }
+pre {
+  padding: 16px; overflow-x: auto; font-family: var(--font-mono);
+  font-size: 13px; line-height: 1.5; color: var(--text);
+}
+/* ── Schema Tree ── */
+details { margin: 8px 0; }
+details summary {
+  cursor: pointer; font-family: var(--font-mono); font-size: 13px;
+  color: var(--accent); padding: 4px 0;
+}
+details summary:hover { color: var(--accent-hover); }
+.schema-tree { padding-left: 20px; border-left: 1px solid var(--border); margin-left: 8px; }
+.schema-field { padding: 4px 0; font-size: 13px; }
+.schema-field .field-name { font-family: var(--font-mono); color: var(--accent); }
+.schema-field .field-type { color: var(--yellow); font-size: 12px; margin-left: 8px; }
+.schema-field .field-desc { color: var(--text-muted); font-size: 12px; margin-left: 8px; }
+/* ── Search Modal ── */
+.search-modal {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  z-index: 200; justify-content: center; align-items: flex-start; padding-top: 120px;
+}
+.search-modal.active { display: flex; }
+.search-box {
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: 12px; width: 560px; max-height: 400px; overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+}
+.search-input {
+  width: 100%; padding: 16px 20px; background: transparent;
+  border: none; border-bottom: 1px solid var(--border);
+  color: var(--text); font-size: 16px; outline: none;
+}
+.search-results { max-height: 300px; overflow-y: auto; padding: 8px; }
+.search-item {
+  display: block; padding: 10px 16px; border-radius: 6px;
+  color: var(--text-secondary); text-decoration: none; font-size: 14px;
+}
+.search-item:hover, .search-item.focused { background: var(--bg-tertiary); color: var(--text); }
+/* ── Status Badges ── */
+.status-ok { color: var(--green); }
+.status-error { color: var(--red); }
+.status-warn { color: var(--yellow); }
+/* ── Alert ── */
+.alert {
+  padding: 12px 16px; border-radius: 6px; margin: 16px 0; font-size: 14px;
+  border-left: 3px solid;
+}
+.alert-info { background: rgba(88,166,255,0.1); border-color: var(--accent); }
+.alert-warn { background: rgba(210,153,34,0.1); border-color: var(--yellow); }
+/* ── Responsive ── */
+@media (max-width: 1200px) {
+  .code-panel { display: none; }
+  .content { max-width: 100%; }
+}
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .content { padding: 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header class="header">
+  <div class="header-title">
+    OFKMS API Reference <span class="version">v2.0</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn-search" onclick="openSearch()">Search <span class="kbd">Ctrl+K</span></button>
+    <button class="btn-theme" onclick="toggleTheme()">Theme</button>
+  </div>
+</header>
+
+<!-- ── Sidebar ── -->
+<nav class="sidebar" id="sidebar">
+  <div class="section-label">Getting Started</div>
+  <a href="#overview">Overview</a>
+  <a href="#auth">Authentication</a>
+  <div class="section-label">Endpoints</div>
+  <a href="#query">Query</a>
+  <a href="#streaming">Streaming</a>
+  <a href="#health">Health</a>
+  <a href="#products">Products</a>
+  <div class="section-label">Admin</div>
+  <a href="#user-management">User Management</a>
+  <a href="#key-management">Key Management</a>
+  <div class="section-label">Reference</div>
+  <a href="#errors">Error Codes</a>
+  <a href="#examples">Examples</a>
+</nav>
+
+<!-- ── Search Modal ── -->
+<div class="search-modal" id="searchModal" onclick="closeSearch(event)">
+  <div class="search-box" onclick="event.stopPropagation()">
+    <input class="search-input" id="searchInput" placeholder="Search documentation..." oninput="filterSearch(this.value)">
+    <div class="search-results" id="searchResults"></div>
+  </div>
+</div>
+
+<!-- ── Main ── -->
+<div class="main">
+<div class="content">
+
+<!-- ════════════ OVERVIEW ════════════ -->
+<section id="overview">
+<h2>Overview</h2>
+<p>The OFKMS API provides REST access to the OpenFrame Knowledge Management System.
+It runs a 5-phase cascading search pipeline (embedding search, domain knowledge, OFCode web docs, parser, LLM fallback)
+and returns structured answers with source attribution and confidence scoring.</p>
+
+<h3>Base URL</h3>
+<pre style="background:var(--bg-tertiary);padding:12px 16px;border-radius:6px;font-family:var(--font-mono);display:inline-block">http://your-host:8000</pre>
+
+<h3>Content Type</h3>
+<p>All request bodies must be JSON. Set <code>Content-Type: application/json</code>.</p>
+
+<h3>Response Format</h3>
+<p>All responses are JSON. Streaming endpoints use Server-Sent Events (SSE).</p>
+</section>
+
+<!-- ════════════ AUTH ════════════ -->
+<section id="auth">
+<h2>Authentication</h2>
+<p>Authenticate requests by including your API key in the <code>X-API-Key</code> header. API keys are stored as SHA-256 hashes in PostgreSQL and linked to user accounts.</p>
+
+<div class="alert alert-info">
+  The following endpoints do not require authentication: <code>/v1/health</code>, <code>/v1/admin/login</code>, <code>/docs</code>, <code>/redoc</code>, <code>/</code>.
+</div>
+
+<table>
+  <tr><th>Header</th><th>Value</th></tr>
+  <tr><td><code>X-API-Key</code></td><td>Your API key (created via <code>POST /v1/admin/keys</code>)</td></tr>
+</table>
+
+<p>If the API key is missing or invalid, the server returns:</p>
+<div class="code-block">
+<pre>{
+  "error": "Invalid or missing API key"
+}</pre>
+</div>
+<p>HTTP Status: <code>401 Unauthorized</code></p>
+
+<div class="alert alert-info">
+  <strong>Bootstrap:</strong> On first startup, a default admin user and API key are auto-created and logged to the console. Use these credentials to get started.
+</div>
+</section>
+
+<!-- ════════════ QUERY ════════════ -->
+<section id="query">
+<h2><span class="method post">POST</span><span class="endpoint-path">/v1/query</span></h2>
+<p>Send a question about OpenFrame products. The system runs the full search pipeline and returns a structured answer.</p>
+
+<h3>Request Body</h3>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr>
+  <tr><td><code>query</code></td><td>string</td><td><span class="required">Required</span></td><td>The question text (1-2000 chars)</td></tr>
+  <tr><td><code>language</code></td><td>string</td><td><span class="optional">Optional</span></td><td><code>ja</code>, <code>ko</code>, or <code>en</code>. Auto-detected if omitted.</td></tr>
+  <tr><td><code>product</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Product filter ID (see <a href="#products">/v1/products</a>)</td></tr>
+  <tr><td><code>include_sources</code></td><td>boolean</td><td><span class="optional">Optional</span></td><td>Include source attribution (default: <code>true</code>)</td></tr>
+  <tr><td><code>include_phases</code></td><td>boolean</td><td><span class="optional">Optional</span></td><td>Include phase timing details (default: <code>false</code>)</td></tr>
+</table>
+
+<h3>Response</h3>
+<div class="schema-tree">
+  <div class="schema-field"><span class="field-name">success</span><span class="field-type">boolean</span></div>
+  <div class="schema-field"><span class="field-name">answer</span><span class="field-type">string</span><span class="field-desc">Markdown-formatted answer</span></div>
+  <div class="schema-field"><span class="field-name">language</span><span class="field-type">string</span><span class="field-desc">ja | ko | en</span></div>
+  <div class="schema-field"><span class="field-name">confidence</span><span class="field-type">float</span><span class="field-desc">0.0 ~ 1.0</span></div>
+  <div class="schema-field"><span class="field-name">intent</span><span class="field-type">string</span><span class="field-desc">Query intent classification</span></div>
+  <div class="schema-field"><span class="field-name">product</span><span class="field-type">string</span><span class="field-desc">Matched product ID</span></div>
+  <details>
+    <summary>sources <span class="field-type">array | null</span></summary>
+    <div class="schema-tree">
+      <div class="schema-field"><span class="field-name">document</span><span class="field-type">string</span></div>
+      <div class="schema-field"><span class="field-name">page</span><span class="field-type">int | null</span></div>
+      <div class="schema-field"><span class="field-name">score</span><span class="field-type">float</span></div>
+      <div class="schema-field"><span class="field-name">type</span><span class="field-type">string</span><span class="field-desc">neo4j_vector | pg_vector | neo4j_graph | ...</span></div>
+    </div>
+  </details>
+  <details>
+    <summary>usage <span class="field-type">object</span></summary>
+    <div class="schema-tree">
+      <div class="schema-field"><span class="field-name">total_time_ms</span><span class="field-type">int</span></div>
+      <div class="schema-field"><span class="field-name">phases_executed</span><span class="field-type">array[int]</span></div>
+      <div class="schema-field"><span class="field-name">fallback_used</span><span class="field-type">boolean</span></div>
+      <div class="schema-field"><span class="field-name">phase_times</span><span class="field-type">object | null</span><span class="field-desc">Only when include_phases=true</span></div>
+    </div>
+  </details>
+</div>
+</section>
+
+<!-- ════════════ STREAMING ════════════ -->
+<section id="streaming">
+<h2><span class="method post">POST</span><span class="endpoint-path">/v1/query/stream</span></h2>
+<p>Same as <code>/v1/query</code> but returns Server-Sent Events (SSE) with real-time phase progress.</p>
+
+<p>The request body is identical to <code>/v1/query</code>.</p>
+
+<h3>Event Types</h3>
+<table>
+  <tr><th>Event</th><th>Description</th></tr>
+  <tr><td><code>phase</code></td><td>Phase completion notification (phase number, name, time)</td></tr>
+  <tr><td><code>answer</code></td><td>Final answer with confidence, language, intent, product</td></tr>
+  <tr><td><code>done</code></td><td>Pipeline complete with total_time_ms</td></tr>
+  <tr><td><code>error</code></td><td>Error occurred during processing</td></tr>
+</table>
+
+<h3>Event Stream Format</h3>
+<div class="code-block">
+<pre>event: phase
+data: {"phase": 0, "name": "query_analysis", "status": "complete", "time_ms": 5}
+
+event: phase
+data: {"phase": 1, "name": "embedding_search", "status": "complete", "time_ms": 1200}
+
+event: phase
+data: {"phase": 2, "name": "domain_knowledge", "status": "complete", "time_ms": 800}
+
+event: phase
+data: {"phase": 3, "name": "ofcode_web", "status": "complete", "time_ms": 300}
+
+event: answer
+data: {"answer": "## BMS and MFS Comparison\n...", "confidence": 0.85, "language": "ja", "intent": "comparison", "product": "openframe_osc_7"}
+
+event: done
+data: {"total_time_ms": 3200}</pre>
+</div>
+
+<div class="alert alert-info">
+  Use the browser's <code>EventSource</code> API or any SSE-compatible HTTP client to consume the stream.
+</div>
+</section>
+
+<!-- ════════════ HEALTH ════════════ -->
+<section id="health">
+<h2><span class="method get">GET</span><span class="endpoint-path">/v1/health</span></h2>
+<p>Check the status of all infrastructure services. <strong>No authentication required.</strong></p>
+
+<h3>Response</h3>
+<div class="schema-tree">
+  <div class="schema-field"><span class="field-name">status</span><span class="field-type">string</span><span class="field-desc">healthy | degraded | unhealthy</span></div>
+  <details>
+    <summary>services <span class="field-type">object</span></summary>
+    <div class="schema-tree">
+      <div class="schema-field"><span class="field-name">llm_qwen3</span><span class="field-type">{status, latency_ms}</span></div>
+      <div class="schema-field"><span class="field-name">bge_m3</span><span class="field-type">{status, latency_ms}</span></div>
+      <div class="schema-field"><span class="field-name">neo4j</span><span class="field-type">{status, latency_ms}</span></div>
+      <div class="schema-field"><span class="field-name">postgresql</span><span class="field-type">{status, latency_ms}</span></div>
+      <div class="schema-field"><span class="field-name">ofcode</span><span class="field-type">{status, latency_ms}</span></div>
+    </div>
+  </details>
+  <div class="schema-field"><span class="field-name">version</span><span class="field-type">string</span></div>
+</div>
+</section>
+
+<!-- ════════════ PRODUCTS ════════════ -->
+<section id="products">
+<h2><span class="method get">GET</span><span class="endpoint-path">/v1/products</span></h2>
+<p>List all supported OpenFrame products and their search keywords.</p>
+
+<h3>Response</h3>
+<div class="schema-tree">
+  <details>
+    <summary>products <span class="field-type">array</span></summary>
+    <div class="schema-tree">
+      <div class="schema-field"><span class="field-name">id</span><span class="field-type">string</span><span class="field-desc">Product ID for filtering</span></div>
+      <div class="schema-field"><span class="field-name">name</span><span class="field-type">string</span><span class="field-desc">Human-readable name</span></div>
+      <div class="schema-field"><span class="field-name">keywords</span><span class="field-type">array[string]</span><span class="field-desc">Search keywords</span></div>
+    </div>
+  </details>
+</div>
+</section>
+
+<!-- ════════════ USER MANAGEMENT ════════════ -->
+<section id="user-management">
+<h2>User Management</h2>
+<p>Manage user accounts. A default admin user is auto-created on first startup with credentials logged to the console.</p>
+
+<h3><span class="method post">POST</span><span class="endpoint-path">/v1/admin/login</span></h3>
+<p>Verify user credentials. <strong>No API key required.</strong></p>
+
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr>
+  <tr><td><code>username</code></td><td>string</td><td><span class="required">Required</span></td><td>Username</td></tr>
+  <tr><td><code>password</code></td><td>string</td><td><span class="required">Required</span></td><td>Password</td></tr>
+</table>
+
+<h4>Response</h4>
+<div class="schema-tree">
+  <div class="schema-field"><span class="field-name">message</span><span class="field-type">string</span></div>
+  <div class="schema-field"><span class="field-name">user_id</span><span class="field-type">int</span></div>
+  <div class="schema-field"><span class="field-name">username</span><span class="field-type">string</span></div>
+  <div class="schema-field"><span class="field-name">role</span><span class="field-type">string</span><span class="field-desc">admin | user</span></div>
+</div>
+
+<div class="code-block">
+<div class="code-header">
+  <div class="code-tabs">
+    <button class="code-tab active" onclick="switchTab(this, 'login')">curl</button>
+  </div>
+  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+<div class="code-content active" data-group="login">
+<pre>curl -X POST http://localhost:8000/v1/admin/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "SecureAdm1nP@ss2024!"}'</pre>
+</div>
+</div>
+
+<h3 style="margin-top:40px"><span class="method post">POST</span><span class="endpoint-path">/v1/admin/users</span></h3>
+<p>Create a new user. <strong>Admin only.</strong></p>
+
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr>
+  <tr><td><code>username</code></td><td>string</td><td><span class="required">Required</span></td><td>Unique username (1-100 chars)</td></tr>
+  <tr><td><code>password</code></td><td>string</td><td><span class="required">Required</span></td><td>Password (min 8 chars)</td></tr>
+  <tr><td><code>role</code></td><td>string</td><td><span class="optional">Optional</span></td><td><code>admin</code> or <code>user</code> (default: <code>user</code>)</td></tr>
+</table>
+
+<h3 style="margin-top:40px"><span class="method get">GET</span><span class="endpoint-path">/v1/admin/users</span></h3>
+<p>List all users with active key counts. <strong>Admin only.</strong></p>
+
+<h3 style="margin-top:40px"><span class="method" style="background:rgba(210,153,34,0.15);color:var(--yellow)">PATCH</span><span class="endpoint-path">/v1/admin/users/{user_id}</span></h3>
+<p>Update user details (username, password, role, is_active). <strong>Admin only.</strong></p>
+
+<h3 style="margin-top:40px"><span class="method" style="background:rgba(248,81,73,0.15);color:var(--red)">DELETE</span><span class="endpoint-path">/v1/admin/users/{user_id}</span></h3>
+<p>Deactivate a user and revoke all their API keys. <strong>Admin only.</strong></p>
+</section>
+
+<!-- ════════════ KEY MANAGEMENT ════════════ -->
+<section id="key-management">
+<h2>Key Management</h2>
+<p>API keys are per-user and stored as SHA-256 hashes. Keys are shown only once at creation time. All key endpoints require a valid <code>X-API-Key</code> header.</p>
+
+<h3><span class="method post">POST</span><span class="endpoint-path">/v1/admin/keys</span></h3>
+<p>Create a new API key for the authenticated user.</p>
+
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr>
+  <tr><td><code>name</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Label for the key (max 200 chars)</td></tr>
+</table>
+
+<h4>Response</h4>
+<div class="schema-tree">
+  <div class="schema-field"><span class="field-name">api_key</span><span class="field-type">string</span><span class="field-desc">The generated key (ofkms-...) — shown only once</span></div>
+  <div class="schema-field"><span class="field-name">key_id</span><span class="field-type">int</span><span class="field-desc">Database ID (use for revocation)</span></div>
+  <div class="schema-field"><span class="field-name">name</span><span class="field-type">string | null</span></div>
+  <div class="schema-field"><span class="field-name">message</span><span class="field-type">string</span></div>
+</div>
+
+<div class="code-block">
+<div class="code-header">
+  <div class="code-tabs">
+    <button class="code-tab active" onclick="switchTab(this, 'keycreate')">curl</button>
+  </div>
+  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+<div class="code-content active" data-group="keycreate">
+<pre>curl -X POST http://localhost:8000/v1/admin/keys \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "my-new-key"}'</pre>
+</div>
+</div>
+
+<h3 style="margin-top:40px"><span class="method get">GET</span><span class="endpoint-path">/v1/admin/keys</span></h3>
+<p>List your API keys. Admins can filter by <code>?user_id=N</code> to see another user's keys.</p>
+
+<h4>Response</h4>
+<div class="schema-tree">
+  <div class="schema-field"><span class="field-name">count</span><span class="field-type">int</span></div>
+  <details>
+    <summary>keys <span class="field-type">array</span></summary>
+    <div class="schema-tree">
+      <div class="schema-field"><span class="field-name">id</span><span class="field-type">int</span></div>
+      <div class="schema-field"><span class="field-name">key_prefix</span><span class="field-type">string</span><span class="field-desc">First 12 chars (ofkms-AbCd...)</span></div>
+      <div class="schema-field"><span class="field-name">name</span><span class="field-type">string | null</span></div>
+      <div class="schema-field"><span class="field-name">is_active</span><span class="field-type">boolean</span></div>
+      <div class="schema-field"><span class="field-name">created_at</span><span class="field-type">string</span></div>
+      <div class="schema-field"><span class="field-name">last_used_at</span><span class="field-type">string | null</span></div>
+      <div class="schema-field"><span class="field-name">user_id</span><span class="field-type">int</span></div>
+      <div class="schema-field"><span class="field-name">username</span><span class="field-type">string</span></div>
+    </div>
+  </details>
+</div>
+
+<div class="code-block">
+<div class="code-header">
+  <div class="code-tabs">
+    <button class="code-tab active" onclick="switchTab(this, 'keylist')">curl</button>
+  </div>
+  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+<div class="code-content active" data-group="keylist">
+<pre># Own keys
+curl -H "X-API-Key: your-key" http://localhost:8000/v1/admin/keys
+
+# Admin: another user's keys
+curl -H "X-API-Key: admin-key" "http://localhost:8000/v1/admin/keys?user_id=2"</pre>
+</div>
+</div>
+
+<h3 style="margin-top:40px"><span class="method" style="background:rgba(248,81,73,0.15);color:var(--red)">DELETE</span><span class="endpoint-path">/v1/admin/keys/{key_id}</span></h3>
+<p>Revoke an API key by its database ID. The key owner or any admin can revoke.</p>
+
+<div class="code-block">
+<div class="code-header">
+  <div class="code-tabs">
+    <button class="code-tab active" onclick="switchTab(this, 'keyrevoke')">curl</button>
+  </div>
+  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+<div class="code-content active" data-group="keyrevoke">
+<pre>curl -X DELETE http://localhost:8000/v1/admin/keys/3 \
+  -H "X-API-Key: your-api-key"</pre>
+</div>
+</div>
+
+<div class="alert alert-warn">
+  <strong>Quick Start Guide:</strong><br>
+  1. Start the server: <code>uvicorn api.server:app --port 8000</code><br>
+  2. Check console logs for the auto-generated admin credentials and API key<br>
+  3. Verify login: <code>curl -X POST http://localhost:8000/v1/admin/login -H "Content-Type: application/json" -d '{"username":"admin","password":"SecureAdm1nP@ss2024!"}'</code><br>
+  4. Use the API key: <code>curl -H "X-API-Key: ofkms-..." http://localhost:8000/v1/products</code><br>
+  5. Create more keys: <code>curl -X POST http://localhost:8000/v1/admin/keys -H "X-API-Key: ofkms-..." -H "Content-Type: application/json" -d '{"name":"my-key"}'</code>
+</div>
+</section>
+
+<!-- ════════════ ERRORS ════════════ -->
+<section id="errors">
+<h2>Error Codes</h2>
+<p>The API uses standard HTTP status codes.</p>
+<table>
+  <tr><th>Code</th><th>Meaning</th><th>Description</th></tr>
+  <tr><td><code>200</code></td><td class="status-ok">OK</td><td>Request succeeded</td></tr>
+  <tr><td><code>400</code></td><td class="status-warn">Bad Request</td><td>Invalid request body (missing query, bad language code)</td></tr>
+  <tr><td><code>401</code></td><td class="status-error">Unauthorized</td><td>Missing or invalid API key</td></tr>
+  <tr><td><code>422</code></td><td class="status-warn">Validation Error</td><td>Request body fails Pydantic validation</td></tr>
+  <tr><td><code>500</code></td><td class="status-error">Server Error</td><td>Internal pipeline error</td></tr>
+  <tr><td><code>503</code></td><td class="status-error">Service Unavailable</td><td>All infrastructure services are down</td></tr>
+</table>
+
+<h3>Error Response Format</h3>
+<div class="code-block">
+<pre>{
+  "error": "Invalid or missing API key",
+  "detail": null
+}</pre>
+</div>
+</section>
+
+<!-- ════════════ EXAMPLES ════════════ -->
+<section id="examples">
+<h2>Examples</h2>
+
+<h3>1. Basic Query (Japanese)</h3>
+<div class="code-block">
+<div class="code-header">
+  <div class="code-tabs">
+    <button class="code-tab active" onclick="switchTab(this, 'ex1')">curl</button>
+    <button class="code-tab" onclick="switchTab(this, 'ex1')">Python</button>
+    <button class="code-tab" onclick="switchTab(this, 'ex1')">JavaScript</button>
+  </div>
+  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+<div class="code-content active" data-group="ex1">
+<pre>curl -X POST http://localhost:8000/v1/query \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "TJESとは何ですか？"}'</pre>
+</div>
+<div class="code-content" data-group="ex1">
+<pre>import httpx
+
+resp = httpx.post(
+    "http://localhost:8000/v1/query",
+    headers={"X-API-Key": "your-api-key"},
+    json={"query": "TJESとは何ですか？"},
+)
+data = resp.json()
+print(data["answer"])</pre>
+</div>
+<div class="code-content" data-group="ex1">
+<pre>const resp = await fetch("http://localhost:8000/v1/query", {
+  method: "POST",
+  headers: {
+    "X-API-Key": "your-api-key",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ query: "TJESとは何ですか？" }),
+});
+const data = await resp.json();
+console.log(data.answer);</pre>
+</div>
+</div>
+
+<h3>2. Comparison Query (Korean)</h3>
+<div class="code-block">
+<div class="code-header">
+  <div class="code-tabs">
+    <button class="code-tab active" onclick="switchTab(this, 'ex2')">curl</button>
+    <button class="code-tab" onclick="switchTab(this, 'ex2')">Python</button>
+    <button class="code-tab" onclick="switchTab(this, 'ex2')">JavaScript</button>
+  </div>
+  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+<div class="code-content active" data-group="ex2">
+<pre>curl -X POST http://localhost:8000/v1/query \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "BMS와 MFS의 차이점을 알려주세요",
+    "include_sources": true,
+    "include_phases": true
+  }'</pre>
+</div>
+<div class="code-content" data-group="ex2">
+<pre>import httpx
+
+resp = httpx.post(
+    "http://localhost:8000/v1/query",
+    headers={"X-API-Key": "your-api-key"},
+    json={
+        "query": "BMS와 MFS의 차이점을 알려주세요",
+        "include_sources": True,
+        "include_phases": True,
+    },
+)
+data = resp.json()
+print(f"Confidence: {data['confidence']}")
+print(f"Answer: {data['answer']}")
+for src in data.get("sources", []):
+    print(f"  - {src['document']} p.{src['page']} ({src['score']:.2f})")</pre>
+</div>
+<div class="code-content" data-group="ex2">
+<pre>const resp = await fetch("http://localhost:8000/v1/query", {
+  method: "POST",
+  headers: {
+    "X-API-Key": "your-api-key",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    query: "BMS와 MFS의 차이점을 알려주세요",
+    include_sources: true,
+    include_phases: true,
+  }),
+});
+const data = await resp.json();
+console.log(`Confidence: ${data.confidence}`);
+console.log(data.answer);</pre>
+</div>
+</div>
+
+<h3>3. Streaming (SSE)</h3>
+<div class="code-block">
+<div class="code-header">
+  <div class="code-tabs">
+    <button class="code-tab active" onclick="switchTab(this, 'ex3')">curl</button>
+    <button class="code-tab" onclick="switchTab(this, 'ex3')">Python</button>
+    <button class="code-tab" onclick="switchTab(this, 'ex3')">JavaScript</button>
+  </div>
+  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+<div class="code-content active" data-group="ex3">
+<pre>curl -N -X POST http://localhost:8000/v1/query/stream \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Protrieveのオプションテーブルについて教えてください"}'</pre>
+</div>
+<div class="code-content" data-group="ex3">
+<pre>import httpx
+
+with httpx.stream(
+    "POST",
+    "http://localhost:8000/v1/query/stream",
+    headers={"X-API-Key": "your-api-key"},
+    json={"query": "Protrieveのオプションテーブルについて教えてください"},
+) as resp:
+    for line in resp.iter_lines():
+        if line.startswith("data: "):
+            print(line[6:])</pre>
+</div>
+<div class="code-content" data-group="ex3">
+<pre>const eventSource = new EventSource(
+  "http://localhost:8000/v1/query/stream",
+  // Note: EventSource only supports GET. For POST, use fetch + ReadableStream:
+);
+
+// Using fetch for POST SSE:
+const resp = await fetch("http://localhost:8000/v1/query/stream", {
+  method: "POST",
+  headers: {
+    "X-API-Key": "your-api-key",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    query: "Protrieveのオプションテーブルについて教えてください",
+  }),
+});
+const reader = resp.body.getReader();
+const decoder = new TextDecoder();
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  console.log(decoder.decode(value));
+}</pre>
+</div>
+</div>
+
+<h3>4. Health Check</h3>
+<div class="code-block">
+<div class="code-header">
+  <div class="code-tabs">
+    <button class="code-tab active" onclick="switchTab(this, 'ex4')">curl</button>
+    <button class="code-tab" onclick="switchTab(this, 'ex4')">Python</button>
+    <button class="code-tab" onclick="switchTab(this, 'ex4')">JavaScript</button>
+  </div>
+  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+</div>
+<div class="code-content active" data-group="ex4">
+<pre>curl http://localhost:8000/v1/health</pre>
+</div>
+<div class="code-content" data-group="ex4">
+<pre>import httpx
+
+resp = httpx.get("http://localhost:8000/v1/health")
+health = resp.json()
+print(f"Status: {health['status']}")
+for name, svc in health["services"].items():
+    print(f"  {name}: {svc['status']} ({svc['latency_ms']}ms)")</pre>
+</div>
+<div class="code-content" data-group="ex4">
+<pre>const resp = await fetch("http://localhost:8000/v1/health");
+const health = await resp.json();
+console.log(`Status: ${health.status}`);
+Object.entries(health.services).forEach(([name, svc]) => {
+  console.log(`  ${name}: ${svc.status} (${svc.latency_ms}ms)`);
+});</pre>
+</div>
+</div>
+
+</section>
+</div>
+
+<!-- ── Code Panel (right side, shows sample response) ── -->
+<div class="code-panel">
+<h3 style="margin-bottom:16px;color:var(--text-muted);font-size:13px;text-transform:uppercase;letter-spacing:1px">Sample Response</h3>
+
+<div style="margin-bottom:24px">
+<p style="font-size:13px;color:var(--text-muted);margin-bottom:8px">POST /v1/query</p>
+<div class="code-block">
+<pre>{
+  "success": true,
+  "answer": "## TJESとは\n\nTJES (Tmax Job Entry Subsystem) は...",
+  "language": "ja",
+  "confidence": 0.92,
+  "intent": "concept",
+  "product": "mvs_openframe_7.1",
+  "sources": [
+    {
+      "document": "OF_Base_TJES_Guide_7.1.pdf",
+      "page": 15,
+      "score": 0.95,
+      "type": "neo4j_vector"
+    },
+    {
+      "document": "OF_Common_MVS_7.1_Guide.pdf",
+      "page": 42,
+      "score": 0.88,
+      "type": "pg_vector"
+    }
+  ],
+  "usage": {
+    "total_time_ms": 2800,
+    "phases_executed": [0, 1, 2, 3, 6],
+    "fallback_used": false,
+    "phase_times": null
+  }
+}</pre>
+</div>
+</div>
+
+<div style="margin-bottom:24px">
+<p style="font-size:13px;color:var(--text-muted);margin-bottom:8px">GET /v1/health</p>
+<div class="code-block">
+<pre>{
+  "status": "healthy",
+  "services": {
+    "llm_qwen3": {"status": "ok", "latency_ms": 45},
+    "bge_m3": {"status": "ok", "latency_ms": 22},
+    "neo4j": {"status": "ok", "latency_ms": 18},
+    "postgresql": {"status": "ok", "latency_ms": 12},
+    "ofcode": {"status": "ok", "latency_ms": 30}
+  },
+  "version": "2.0.0"
+}</pre>
+</div>
+</div>
+
+<div>
+<p style="font-size:13px;color:var(--text-muted);margin-bottom:8px">GET /v1/products</p>
+<div class="code-block">
+<pre>{
+  "products": [
+    {
+      "id": "mvs_openframe_7.1",
+      "name": "MVS OpenFrame 7.1",
+      "keywords": ["tjes", "tacf", "jcl", ...]
+    },
+    {
+      "id": "openframe_osc_7",
+      "name": "OpenFrame OSC 7 (CICS)",
+      "keywords": ["osc", "cics", "bms", ...]
+    },
+    {
+      "id": "openframe_hidb_7",
+      "name": "OpenFrame HiDB 7 (IMS)",
+      "keywords": ["hidb", "ims", "dbd", ...]
+    }
+  ]
+}</pre>
+</div>
+</div>
+</div>
+
+</div>
+
+<script>
+// ── Theme Toggle ──
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+}
+(function() {
+  const saved = localStorage.getItem('theme');
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+})();
+
+// ── Code Tab Switching ──
+function switchTab(btn, group) {
+  const tabs = btn.parentElement.querySelectorAll('.code-tab');
+  const block = btn.closest('.code-block');
+  const contents = block.querySelectorAll('.code-content[data-group="' + group + '"]');
+  const idx = Array.from(tabs).indexOf(btn);
+  tabs.forEach(t => t.classList.remove('active'));
+  contents.forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  if (contents[idx]) contents[idx].classList.add('active');
+}
+
+// ── Copy Code ──
+function copyCode(btn) {
+  const block = btn.closest('.code-block');
+  const active = block.querySelector('.code-content.active pre');
+  if (active) {
+    navigator.clipboard.writeText(active.textContent).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+  }
+}
+
+// ── Search ──
+const searchSections = [
+  { id: 'overview', title: 'Overview', desc: 'Base URL, content type, response format' },
+  { id: 'auth', title: 'Authentication', desc: 'X-API-Key header, 401 errors' },
+  { id: 'query', title: 'POST /v1/query', desc: 'Main query endpoint, request/response schema' },
+  { id: 'streaming', title: 'POST /v1/query/stream', desc: 'SSE streaming, real-time phase progress' },
+  { id: 'health', title: 'GET /v1/health', desc: 'Infrastructure health check, service status' },
+  { id: 'products', title: 'GET /v1/products', desc: 'Supported product list, keywords' },
+  { id: 'user-management', title: 'User Management', desc: 'Login, create/list/update/deactivate users, admin endpoints' },
+  { id: 'key-management', title: 'Key Management', desc: 'Create, list, revoke per-user API keys' },
+  { id: 'errors', title: 'Error Codes', desc: 'HTTP status codes, error response format' },
+  { id: 'examples', title: 'Examples', desc: 'curl, Python, JavaScript code examples' },
+];
+
+function openSearch() {
+  document.getElementById('searchModal').classList.add('active');
+  const input = document.getElementById('searchInput');
+  input.value = '';
+  input.focus();
+  filterSearch('');
+}
+
+function closeSearch(e) {
+  if (e.target === document.getElementById('searchModal')) {
+    document.getElementById('searchModal').classList.remove('active');
+  }
+}
+
+function filterSearch(query) {
+  const results = document.getElementById('searchResults');
+  const q = query.toLowerCase();
+  const filtered = q ? searchSections.filter(s =>
+    s.title.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q)
+  ) : searchSections;
+  results.innerHTML = filtered.map(s =>
+    '<a class="search-item" href="#' + s.id + '" onclick="document.getElementById(\'searchModal\').classList.remove(\'active\')">' +
+    '<strong>' + s.title + '</strong><br><span style="font-size:12px;color:var(--text-muted)">' + s.desc + '</span></a>'
+  ).join('');
+}
+
+// Ctrl+K shortcut
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    openSearch();
+  }
+  if (e.key === 'Escape') {
+    document.getElementById('searchModal').classList.remove('active');
+  }
+});
+
+// ── Sidebar Scroll Highlight ──
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+      const link = document.querySelector('.sidebar a[href="#' + entry.target.id + '"]');
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+
+document.querySelectorAll('section[id]').forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

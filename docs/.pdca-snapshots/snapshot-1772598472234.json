@@ -1,0 +1,51 @@
+{
+  "timestamp": "2026-03-04T04:27:52.234Z",
+  "reason": "compaction",
+  "status": {
+    "version": "2.0",
+    "lastUpdated": "2026-03-04T14:30:00.000Z",
+    "activeFeatures": [],
+    "primaryFeature": null,
+    "features": {
+      "ofkms-v2": {
+        "phase": "archived",
+        "matchRate": 97,
+        "iteration": 2,
+        "createdAt": "2026-03-04T11:45:00.000Z",
+        "archivedAt": "2026-03-04T14:30:00.000Z",
+        "archivedTo": "docs/archive/2026-03/ofkms-v2/",
+        "plan": {
+          "path": "docs/archive/2026-03/ofkms-v2/ofkms-v2.plan.md",
+          "completedAt": "2026-03-04T11:45:00.000Z"
+        },
+        "design": {
+          "path": "docs/archive/2026-03/ofkms-v2/ofkms-v2.design.md",
+          "completedAt": "2026-03-04T12:00:00.000Z"
+        },
+        "report": {
+          "path": "docs/archive/2026-03/ofkms-v2/ofkms-v2.report.md",
+          "completedAt": "2026-03-04T14:00:00.000Z"
+        }
+      }
+    },
+    "pipeline": {
+      "currentPhase": 1,
+      "level": "Dynamic",
+      "phaseHistory": []
+    },
+    "session": {
+      "startedAt": "2026-03-04T02:38:33.594Z",
+      "onboardingCompleted": true,
+      "lastActivity": "2026-03-04T14:30:00.000Z"
+    },
+    "history": [
+      {
+        "feature": "ofkms-v2",
+        "phase": "archived",
+        "matchRate": 97,
+        "archivedAt": "2026-03-04T14:30:00.000Z",
+        "archivedTo": "docs/archive/2026-03/ofkms-v2/"
+      }
+    ]
+  }
+}

@@ -1,8 +1,8 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-03-04T14:30:00.000Z",
-  "activeFeatures": [],
-  "primaryFeature": null,
+  "lastUpdated": "2026-03-04T15:00:00.000Z",
+  "activeFeatures": ["external-api", "vscode-cli"],
+  "primaryFeature": "vscode-cli",
   "features": {
     "ofkms-v2": {
       "phase": "archived",
@@ -23,6 +23,34 @@
         "path": "docs/archive/2026-03/ofkms-v2/ofkms-v2.report.md",
         "completedAt": "2026-03-04T14:00:00.000Z"
       }
+    },
+    "external-api": {
+      "phase": "do",
+      "matchRate": null,
+      "iteration": 0,
+      "createdAt": "2026-03-04T15:00:00.000Z",
+      "plan": {
+        "path": "docs/01-plan/features/external-api.plan.md",
+        "completedAt": "2026-03-04T15:00:00.000Z"
+      },
+      "design": {
+        "path": "docs/02-design/features/external-api.design.md",
+        "completedAt": "2026-03-04T15:30:00.000Z"
+      }
+    },
+    "vscode-cli": {
+      "phase": "do",
+      "matchRate": null,
+      "iteration": 0,
+      "createdAt": "2026-03-04T16:00:00.000Z",
+      "plan": {
+        "path": "docs/01-plan/features/vscode-cli.plan.md",
+        "completedAt": "2026-03-04T16:00:00.000Z"
+      },
+      "design": {
+        "path": "docs/02-design/features/vscode-cli.design.md",
+        "completedAt": "2026-03-04T16:30:00.000Z"
+      }
     }
   },
   "pipeline": {
@@ -33,7 +61,7 @@
   "session": {
     "startedAt": "2026-03-04T02:38:33.594Z",
     "onboardingCompleted": true,
-    "lastActivity": "2026-03-04T14:30:00.000Z"
+    "lastActivity": "2026-03-04T15:00:00.000Z"
   },
   "history": [
     {

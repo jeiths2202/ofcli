@@ -10,6 +10,7 @@ from typing import List, Tuple
 from app.agents.base import BaseAgent
 from app.agents.tools.summary_search import tokenize
 from app.models.query import (
+    ComparisonTarget,
     DetectedLanguage,
     ProductMatch,
     QueryIntent,
@@ -104,6 +105,44 @@ COMPARISON_PATTERNS = [
     re.compile(r"違い|比較|차이|비교|differ|compar|vs\b", re.IGNORECASE),
 ]
 
+# ─── 툴/유틸리티 → 상위 제품 계층 매핑 ───
+TOOL_HIERARCHY = {
+    # OSC/CICS 계열
+    "bms": {"parent": "CICS/OSC", "product_id": "openframe_osc_7", "category": "화면정의", "desc": "Basic Mapping Support - CICS画面定義ユーティリティ"},
+    "dfhmdf": {"parent": "CICS/OSC", "product_id": "openframe_osc_7", "category": "화면정의", "desc": "BMS Macro - 画面フィールド定義マクロ"},
+    "tdq": {"parent": "CICS/OSC", "product_id": "openframe_osc_7", "category": "キュー", "desc": "Transient Data Queue"},
+    "tsq": {"parent": "CICS/OSC", "product_id": "openframe_osc_7", "category": "キュー", "desc": "Temporary Storage Queue"},
+    "commarea": {"parent": "CICS/OSC", "product_id": "openframe_osc_7", "category": "通信領域", "desc": "Communication Area - プログラム間データ受渡し"},
+    "exec cics": {"parent": "CICS/OSC", "product_id": "openframe_osc_7", "category": "API", "desc": "CICS API コマンド"},
+    "oscmgr": {"parent": "CICS/OSC", "product_id": "openframe_osc_7", "category": "管理ツール", "desc": "OSC管理ユーティリティ"},
+    # IMS/HiDB 계열
+    "mfs": {"parent": "IMS/HiDB", "product_id": "openframe_hidb_7", "category": "화면정의", "desc": "Message Format Service - IMS画面定義ユーティリティ"},
+    "dbd": {"parent": "IMS/HiDB", "product_id": "openframe_hidb_7", "category": "DB定義", "desc": "Database Description - IMS DB構造定義"},
+    "psb": {"parent": "IMS/HiDB", "product_id": "openframe_hidb_7", "category": "DB定義", "desc": "Program Specification Block - IMS DBアクセス定義"},
+    "dlibatch": {"parent": "IMS/HiDB", "product_id": "openframe_hidb_7", "category": "バッチ", "desc": "DL/I Batch - IMSバッチ処理"},
+    "hidbmgr": {"parent": "IMS/HiDB", "product_id": "openframe_hidb_7", "category": "管理ツール", "desc": "HiDB管理ユーティリティ"},
+    # MVS/OpenFrame Base 계열
+    "jcl": {"parent": "MVS/OpenFrame Base", "product_id": "mvs_openframe_7.1", "category": "ジョブ制御", "desc": "Job Control Language"},
+    "idcams": {"parent": "MVS/OpenFrame Base", "product_id": "mvs_openframe_7.1", "category": "データセット", "desc": "VSAM管理ユーティリティ"},
+    "iebgener": {"parent": "MVS/OpenFrame Base", "product_id": "mvs_openframe_7.1", "category": "データセット", "desc": "データセットコピーユーティリティ"},
+    "iebcopy": {"parent": "MVS/OpenFrame Base", "product_id": "mvs_openframe_7.1", "category": "データセット", "desc": "PDSコピーユーティリティ"},
+    "dfsort": {"parent": "MVS/OpenFrame Base", "product_id": "mvs_openframe_7.1", "category": "ソート", "desc": "データソート/マージユーティリティ"},
+    "dsmigin": {"parent": "MVS/OpenFrame Base", "product_id": "mvs_openframe_7.1", "category": "マイグレーション", "desc": "データセット移行 (Import)"},
+    "dsmigout": {"parent": "MVS/OpenFrame Base", "product_id": "mvs_openframe_7.1", "category": "マイグレーション", "desc": "データセット移行 (Export)"},
+    "tjes": {"parent": "MVS/OpenFrame Base", "product_id": "mvs_openframe_7.1", "category": "ジョブ管理", "desc": "Tmax Job Entry Subsystem"},
+    "tjesmgr": {"parent": "MVS/OpenFrame Base", "product_id": "mvs_openframe_7.1", "category": "管理ツール", "desc": "TJES管理ユーティリティ"},
+    "tacf": {"parent": "MVS/OpenFrame Base", "product_id": "mvs_openframe_7.1", "category": "セキュリティ", "desc": "Tmax Access Control Facility"},
+    "tacfmgr": {"parent": "MVS/OpenFrame Base", "product_id": "mvs_openframe_7.1", "category": "管理ツール", "desc": "TACF管理ユーティリティ"},
+    # OFASM 계열
+    "ofasm": {"parent": "OFASM", "product_id": "ofasm_4", "category": "アセンブラ", "desc": "OpenFrame Assemblerエミュレータ"},
+    "ofasmif": {"parent": "OFASM", "product_id": "ofasm_4", "category": "インターフェース", "desc": "OFASMインターフェースツール"},
+    # OFCOBOL 계열
+    "ofcobol": {"parent": "OFCOBOL", "product_id": "ofcobol_4", "category": "コンパイラ", "desc": "OpenFrame COBOLコンパイラ"},
+    "cobprep": {"parent": "OFCOBOL", "product_id": "ofcobol_4", "category": "プリプロセッサ", "desc": "COBOLプリプロセッサ"},
+    # Protrieve 계열
+    "protrieve": {"parent": "Protrieve", "product_id": "protrieve_7", "category": "レポート", "desc": "Easytrieve互換レポートジェネレータ"},
+}
+
 
 class QueryAgent(BaseAgent):
     def __init__(self):
@@ -121,6 +160,21 @@ class QueryAgent(BaseAgent):
             kw in raw.lower() for kw in ["jcl", "cobol", "asm", "サンプル", "샘플", "sample"]
         )
 
+        # 비교 의도일 경우 상위 제품 컨텍스트 확장
+        comparison_targets = []
+        expansion_terms = []
+        if intent == QueryIntent.COMPARISON:
+            comparison_targets, extra_tokens, extra_products = self._resolve_comparison(
+                tokens, raw
+            )
+            expansion_terms = extra_tokens
+            # 비교 대상이 서로 다른 제품에 속하면 두 제품 모두 라우팅
+            for ep in extra_products:
+                if not any(p.product_id == ep for p in products):
+                    products.append(
+                        ProductMatch(product_id=ep, confidence=0.5, matched_keywords=[])
+                    )
+
         state.query_plan = QueryPlan(
             raw_query=raw,
             normalized_query=" ".join(tokens),
@@ -128,9 +182,11 @@ class QueryAgent(BaseAgent):
             language=lang,
             products=products,
             requires_code_analysis=requires_code,
-            query_tokens=tokens,
+            query_tokens=tokens + expansion_terms,
             error_codes=error_codes,
             command_names=command_names,
+            expansion_terms=expansion_terms,
+            comparison_targets=comparison_targets,
         )
 
     # ─── 내부 메서드 ───
@@ -180,6 +236,31 @@ class QueryAgent(BaseAgent):
             ProductMatch(product_id=pid, confidence=s, matched_keywords=kws)
             for pid, s, kws in scores
         ]
+
+    def _resolve_comparison(
+        self, tokens: List[str], raw: str
+    ) -> Tuple[List[ComparisonTarget], List[str], List[str]]:
+        """비교 대상을 TOOL_HIERARCHY에서 조회하여 상위 제품 컨텍스트 반환"""
+        targets = []
+        extra_tokens = []
+        extra_product_ids = []
+        raw_lower = raw.lower()
+
+        for tool_name, info in TOOL_HIERARCHY.items():
+            if tool_name in raw_lower or tool_name in tokens:
+                targets.append(ComparisonTarget(
+                    term=tool_name.upper(),
+                    parent_product=info["parent"],
+                    category=info["category"],
+                    description=info["desc"],
+                ))
+                # 상위 제품 키워드를 토큰에 추가하여 검색 범위 확장
+                parent_tokens = info["parent"].lower().replace("/", " ").split()
+                extra_tokens.extend(parent_tokens)
+                if info["product_id"] not in extra_product_ids:
+                    extra_product_ids.append(info["product_id"])
+
+        return targets, extra_tokens, extra_product_ids
 
     def _extract_error_codes(self, text: str) -> List[str]:
         return re.findall(r"-\d{4,5}", text)
