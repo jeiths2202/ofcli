@@ -1,0 +1,39 @@
+{
+  "timestamp": "2026-03-04T03:47:47.733Z",
+  "reason": "compaction",
+  "status": {
+    "version": "2.0",
+    "lastUpdated": "2026-03-04T11:45:00.000Z",
+    "activeFeatures": [
+      "ofkms-v2"
+    ],
+    "primaryFeature": "ofkms-v2",
+    "features": {
+      "ofkms-v2": {
+        "phase": "check",
+        "matchRate": 95,
+        "iteration": 1,
+        "createdAt": "2026-03-04T11:45:00.000Z",
+        "plan": {
+          "path": "docs/01-plan/features/ofkms-v2.plan.md",
+          "completedAt": "2026-03-04T11:45:00.000Z"
+        },
+        "design": {
+          "path": "docs/02-design/features/ofkms-v2.design.md",
+          "completedAt": "2026-03-04T12:00:00.000Z"
+        }
+      }
+    },
+    "pipeline": {
+      "currentPhase": 1,
+      "level": "Dynamic",
+      "phaseHistory": []
+    },
+    "session": {
+      "startedAt": "2026-03-04T02:38:33.594Z",
+      "onboardingCompleted": true,
+      "lastActivity": "2026-03-04T11:45:00.000Z"
+    },
+    "history": []
+  }
+}
