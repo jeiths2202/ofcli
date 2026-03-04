@@ -334,6 +334,7 @@ body {
   gap: 6px;
   padding: 8px 12px;
   border-top: 1px solid var(--vscode-panel-border);
+  position: relative;
 }
 
 .input-area textarea {
@@ -380,6 +381,116 @@ body {
 }
 .cancel-btn:hover {
   background: var(--vscode-button-secondaryHoverBackground, #505357);
+}
+
+/* ── System / Help messages ── */
+.message.system {
+  background: var(--vscode-textCodeBlock-background);
+  border: 1px solid var(--vscode-panel-border);
+  align-self: stretch;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.help-title {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--vscode-foreground);
+  margin-bottom: 6px;
+}
+
+.help-row {
+  display: flex;
+  gap: 10px;
+  padding: 2px 0;
+}
+
+.help-cmd {
+  font-family: var(--vscode-editor-font-family);
+  font-weight: 600;
+  color: var(--vscode-textLink-foreground, #3794ff);
+  min-width: 72px;
+}
+
+.help-desc {
+  color: var(--vscode-descriptionForeground);
+}
+
+.help-tip {
+  margin-top: 6px;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* ── History list ── */
+.history-row {
+  display: flex;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.history-num {
+  color: var(--vscode-descriptionForeground);
+  min-width: 24px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.history-text {
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-text:hover {
+  color: var(--vscode-textLink-foreground, #3794ff);
+  text-decoration: underline;
+}
+
+/* ── Autocomplete popup ── */
+.ac-popup {
+  position: absolute;
+  bottom: 100%;
+  left: 12px;
+  right: 60px;
+  background: var(--vscode-editorSuggestWidget-background, var(--vscode-editor-background));
+  border: 1px solid var(--vscode-editorSuggestWidget-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.ac-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.ac-item:hover, .ac-item.active {
+  background: var(--vscode-editorSuggestWidget-selectedBackground, var(--vscode-list-activeSelectionBackground));
+  color: var(--vscode-editorSuggestWidget-selectedForeground, var(--vscode-list-activeSelectionForeground));
+}
+
+.ac-cmd {
+  font-family: var(--vscode-editor-font-family);
+  font-weight: 600;
+  min-width: 72px;
+}
+
+.ac-desc {
+  color: var(--vscode-descriptionForeground);
+}
+
+.ac-item.active .ac-desc, .ac-item:hover .ac-desc {
+  color: inherit;
+  opacity: 0.8;
 }
 
 .hidden { display: none !important; }

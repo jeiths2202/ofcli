@@ -82,6 +82,19 @@ const selLanguage = /** @type {HTMLSelectElement} */ ($("#selLanguage"));
 
 let isStreaming = false;
 
+// ── Query history (arrow-key navigation) ──
+const queryHistory = [];
+const MAX_HISTORY = 50;
+let historyIndex = -1;
+let historyDraft = "";
+
+// ── Slash commands ──
+const SLASH_COMMANDS = [
+  { cmd: "/clear", desc: "Clear all messages" },
+  { cmd: "/help", desc: "Show available commands" },
+  { cmd: "/history", desc: "Show recent query history" },
+];
+
 // ── Fallback product list (always available even without API) ──
 const DEFAULT_PRODUCTS = [
   { id: "mvs_openframe_7.1", name: "MVS OpenFrame 7.1" },
@@ -178,6 +191,23 @@ function sendQuery() {
   const query = queryInput.value.trim();
   if (!query || isStreaming) return;
 
+  // Handle slash commands
+  if (query.startsWith("/")) {
+    handleSlashCommand(query);
+    queryInput.value = "";
+    autoResize();
+    hideAutocomplete();
+    return;
+  }
+
+  // Push to history
+  if (queryHistory[queryHistory.length - 1] !== query) {
+    queryHistory.push(query);
+    if (queryHistory.length > MAX_HISTORY) queryHistory.shift();
+  }
+  historyIndex = -1;
+  historyDraft = "";
+
   addMessage("user", query);
   queryInput.value = "";
   autoResize();
@@ -193,6 +223,105 @@ function sendQuery() {
     language: selLanguage.value,
     product: selProduct.value,
   });
+}
+
+// ── Slash command handler ──
+
+function handleSlashCommand(input) {
+  const cmd = input.split(/\s+/)[0].toLowerCase();
+
+  switch (cmd) {
+    case "/clear":
+      clearAll();
+      break;
+    case "/help":
+      showHelpMessage();
+      break;
+    case "/history":
+      showHistoryMessage();
+      break;
+    default:
+      addSystemMessage(`Unknown command: ${cmd}. Type /help for available commands.`);
+  }
+}
+
+function addSystemMessage(text) {
+  const div = document.createElement("div");
+  div.className = "message system";
+  div.textContent = text;
+  messagesEl.appendChild(div);
+  scrollToBottom();
+}
+
+function showHelpMessage() {
+  const div = document.createElement("div");
+  div.className = "message system help-message";
+
+  const title = document.createElement("div");
+  title.className = "help-title";
+  title.textContent = "Available Commands";
+  div.appendChild(title);
+
+  for (const { cmd, desc } of SLASH_COMMANDS) {
+    const row = document.createElement("div");
+    row.className = "help-row";
+    const cmdSpan = document.createElement("span");
+    cmdSpan.className = "help-cmd";
+    cmdSpan.textContent = cmd;
+    const descSpan = document.createElement("span");
+    descSpan.className = "help-desc";
+    descSpan.textContent = desc;
+    row.appendChild(cmdSpan);
+    row.appendChild(descSpan);
+    div.appendChild(row);
+  }
+
+  const tip = document.createElement("div");
+  tip.className = "help-tip";
+  tip.textContent = "Tip: Use Up/Down arrow keys to navigate query history.";
+  div.appendChild(tip);
+
+  messagesEl.appendChild(div);
+  scrollToBottom();
+}
+
+function showHistoryMessage() {
+  if (queryHistory.length === 0) {
+    addSystemMessage("No query history yet.");
+    return;
+  }
+
+  const div = document.createElement("div");
+  div.className = "message system";
+
+  const title = document.createElement("div");
+  title.className = "help-title";
+  title.textContent = `Query History (${queryHistory.length})`;
+  div.appendChild(title);
+
+  const start = Math.max(0, queryHistory.length - 20);
+  for (let i = start; i < queryHistory.length; i++) {
+    const row = document.createElement("div");
+    row.className = "history-row";
+    const num = document.createElement("span");
+    num.className = "history-num";
+    num.textContent = `${i + 1}.`;
+    const text = document.createElement("span");
+    text.className = "history-text";
+    text.textContent = queryHistory[i];
+    // Click to re-use a history item
+    text.addEventListener("click", () => {
+      queryInput.value = queryHistory[i];
+      queryInput.focus();
+      autoResize();
+    });
+    row.appendChild(num);
+    row.appendChild(text);
+    div.appendChild(row);
+  }
+
+  messagesEl.appendChild(div);
+  scrollToBottom();
 }
 
 function startStream() {
@@ -466,13 +595,143 @@ btnSettings.addEventListener("click", () => {
 });
 
 queryInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+  // Autocomplete selection
+  if (autocompleteEl && !autocompleteEl.classList.contains("hidden")) {
+    if (e.key === "Enter" || e.key === "Tab") {
+      const active = autocompleteEl.querySelector(".ac-item.active");
+      if (active) {
+        e.preventDefault();
+        queryInput.value = active.dataset.cmd + " ";
+        hideAutocomplete();
+        autoResize();
+        return;
+      }
+    }
+    if (e.key === "Escape") {
+      hideAutocomplete();
+      return;
+    }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      const items = [...autocompleteEl.querySelectorAll(".ac-item")];
+      if (items.length > 0) {
+        e.preventDefault();
+        const cur = items.findIndex((el) => el.classList.contains("active"));
+        items.forEach((el) => el.classList.remove("active"));
+        let next;
+        if (e.key === "ArrowDown") {
+          next = cur < items.length - 1 ? cur + 1 : 0;
+        } else {
+          next = cur > 0 ? cur - 1 : items.length - 1;
+        }
+        items[next].classList.add("active");
+        return;
+      }
+    }
+  }
+
+  // Send on Enter
+  if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     sendQuery();
+    return;
+  }
+
+  // Arrow key history navigation
+  if (e.key === "ArrowUp" && queryHistory.length > 0) {
+    // Only activate when cursor is on the first line
+    const beforeCursor = queryInput.value.substring(0, queryInput.selectionStart);
+    if (!beforeCursor.includes("\n")) {
+      e.preventDefault();
+      if (historyIndex === -1) {
+        historyDraft = queryInput.value;
+        historyIndex = queryHistory.length - 1;
+      } else if (historyIndex > 0) {
+        historyIndex--;
+      }
+      queryInput.value = queryHistory[historyIndex];
+      autoResize();
+    }
+  }
+
+  if (e.key === "ArrowDown" && historyIndex !== -1) {
+    // Only activate when cursor is on the last line
+    const afterCursor = queryInput.value.substring(queryInput.selectionStart);
+    if (!afterCursor.includes("\n")) {
+      e.preventDefault();
+      if (historyIndex < queryHistory.length - 1) {
+        historyIndex++;
+        queryInput.value = queryHistory[historyIndex];
+      } else {
+        historyIndex = -1;
+        queryInput.value = historyDraft;
+      }
+      autoResize();
+    }
   }
 });
 
-queryInput.addEventListener("input", autoResize);
+queryInput.addEventListener("input", () => {
+  autoResize();
+  updateAutocomplete();
+});
+
+// ── Slash command autocomplete popup ──
+
+const autocompleteEl = document.createElement("div");
+autocompleteEl.className = "ac-popup hidden";
+document.querySelector(".input-area").appendChild(autocompleteEl);
+
+function updateAutocomplete() {
+  const val = queryInput.value;
+  if (!val.startsWith("/") || val.includes(" ")) {
+    hideAutocomplete();
+    return;
+  }
+
+  const prefix = val.toLowerCase();
+  const matches = SLASH_COMMANDS.filter((c) => c.cmd.startsWith(prefix));
+
+  if (matches.length === 0 || (matches.length === 1 && matches[0].cmd === val)) {
+    hideAutocomplete();
+    return;
+  }
+
+  autocompleteEl.textContent = "";
+  for (const { cmd, desc } of matches) {
+    const item = document.createElement("div");
+    item.className = "ac-item";
+    item.dataset.cmd = cmd;
+
+    const cmdSpan = document.createElement("span");
+    cmdSpan.className = "ac-cmd";
+    cmdSpan.textContent = cmd;
+    const descSpan = document.createElement("span");
+    descSpan.className = "ac-desc";
+    descSpan.textContent = desc;
+
+    item.appendChild(cmdSpan);
+    item.appendChild(descSpan);
+
+    item.addEventListener("click", () => {
+      queryInput.value = cmd + " ";
+      hideAutocomplete();
+      queryInput.focus();
+      autoResize();
+    });
+
+    autocompleteEl.appendChild(item);
+  }
+
+  // Auto-select first item
+  const firstItem = autocompleteEl.querySelector(".ac-item");
+  if (firstItem) firstItem.classList.add("active");
+
+  autocompleteEl.classList.remove("hidden");
+}
+
+function hideAutocomplete() {
+  autocompleteEl.classList.add("hidden");
+}
 
 // ── Init: load fallback products immediately, then tell extension we're ready ──
 updateProducts(DEFAULT_PRODUCTS);
