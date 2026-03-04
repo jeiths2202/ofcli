@@ -43,8 +43,39 @@ Follow these rules strictly:
 3. If unsure, respond with "Information not found."
 4. Use official names for OpenFrame terms (e.g., TJES = Tmax Job Entry Subsystem)."""
 
+# CODE intent 전용 시스템 프롬프트 (코드 생성 허용)
+SYSTEM_PROMPT_CODE_JA = """あなたはTmaxSoft OpenFrame製品の専門家であり、プログラミングアシスタントです。
+以下のルールを厳守してください:
+1. 検索結果に基づいてAPIや機能を説明すること。
+2. 検索結果に記載されたAPI・関数・構文を使用してサンプルコードを生成すること。
+3. サンプルコードには適切なコメントを付けること。
+4. 出典（ドキュメント名・ページ）を明記すること。
+5. OpenFrame固有用語は正式名称を使うこと。"""
 
-def _get_system_prompt(lang: str) -> str:
+SYSTEM_PROMPT_CODE_KO = """당신은 TmaxSoft OpenFrame 제품 전문가이자 프로그래밍 어시스턴트입니다.
+다음 규칙을 엄격히 준수하세요:
+1. 검색 결과를 기반으로 API와 기능을 설명하세요.
+2. 검색 결과에 기재된 API/함수/구문을 사용하여 샘플 코드를 생성하세요.
+3. 샘플 코드에는 적절한 주석을 추가하세요.
+4. 출처(문서명, 페이지)를 명기하세요.
+5. OpenFrame 고유 용어는 정식 명칭을 사용하세요."""
+
+SYSTEM_PROMPT_CODE_EN = """You are a TmaxSoft OpenFrame product expert and programming assistant.
+Follow these rules strictly:
+1. Explain APIs and features based on search results.
+2. Generate sample code using APIs/functions/syntax found in search results.
+3. Add appropriate comments to sample code.
+4. Cite sources (document name, page).
+5. Use official names for OpenFrame terms."""
+
+
+def _get_system_prompt(lang: str, intent: str = "") -> str:
+    if intent == "code":
+        if lang == "ko":
+            return SYSTEM_PROMPT_CODE_KO
+        if lang == "en":
+            return SYSTEM_PROMPT_CODE_EN
+        return SYSTEM_PROMPT_CODE_JA
     if lang == "ko":
         return SYSTEM_PROMPT_KO
     if lang == "en":
@@ -129,10 +160,26 @@ class DomainAgent(BaseAgent):
             ctx_parts.append(f"[Source: {src}{page}]\n{c.content[:1500]}")
 
         context_text = "\n\n---\n\n".join(ctx_parts) if ctx_parts else "(検索結果なし)"
-        system = _get_system_prompt(plan.language.value)
+        system = _get_system_prompt(plan.language.value, plan.intent.value)
 
+        # CODE 의도: 코드 생성 전용 프롬프트
+        if plan.intent == QueryIntent.CODE:
+            prompt = f"""## 検索結果
+{context_text}
+
+## 質問
+{plan.raw_query}
+
+## 回答指示
+以下の順序で回答してください:
+1. **API/機能の説明**: 検索結果から該当するAPI・関数・構文を説明
+2. **サンプルコード**: 上記のAPI/関数を使用した実用的なサンプルコードを生成（コメント付き）
+3. **補足説明**: コンパイル方法、注意事項など
+
+## 回答"""
+            max_tokens = 4096
         # 비교 의도 + 상위 제품 컨텍스트가 있으면 전용 프롬프트
-        if plan.intent == QueryIntent.COMPARISON and plan.comparison_targets:
+        elif plan.intent == QueryIntent.COMPARISON and plan.comparison_targets:
             hierarchy_ctx = self._build_comparison_context(plan.comparison_targets)
             prompt = f"""## 比較対象の上位製品コンテキスト
 {hierarchy_ctx}
@@ -151,6 +198,7 @@ class DomainAgent(BaseAgent):
 4. **まとめ表**: 主要な違いを表形式で整理
 
 ## 回答"""
+            max_tokens = None
         else:
             prompt = f"""## 検索結果
 {context_text}
@@ -159,9 +207,12 @@ class DomainAgent(BaseAgent):
 {plan.raw_query}
 
 ## 回答"""
+            max_tokens = None
 
         try:
-            answer = await self.llm.chat(prompt, system=system, temperature=0.3)
+            answer = await self.llm.chat(
+                prompt, system=system, temperature=0.3, max_tokens=max_tokens
+            )
             # <think> タグ除去
             answer = re.sub(r"<think>.*?</think>\s*", "", answer, flags=re.DOTALL).strip()
             # confidence: chunks があれば高め

@@ -28,7 +28,7 @@ PRODUCT_KEYWORDS = {
             "jcl", "jclrun", "idcams", "iebgener", "iebcopy", "dfsort",
             "tmboot", "tmdown", "ofboot", "ofdown", "jesinit",
             "dsmigin", "dsmigout", "volmgr", "catmgr",
-            "mvs", "openframe base", "of_base",
+            "mvs", "openframe base", "of_base", "openframe", "dcb",
         ],
         "weight": 1.0,
     },
@@ -99,7 +99,12 @@ CONFIG_PATTERNS = [
     re.compile(r"\.conf\b|設定|설정|config|parameter|パラメータ", re.IGNORECASE),
 ]
 CODE_PATTERNS = [
-    re.compile(r"JCL|COBOL|ASM|サンプル|샘플|sample|ソースコード|소스코드", re.IGNORECASE),
+    re.compile(
+        r"JCL|COBOL|ASM|サンプル|샘플|sample|ソースコード|소스코드"
+        r"|ソース|소스|コード作成|코드\s*작성|作成して|작성해"
+        r"|サンプルコード|샘플\s*코드|code",
+        re.IGNORECASE,
+    ),
 ]
 COMPARISON_PATTERNS = [
     re.compile(r"違い|比較|차이|비교|differ|compar|vs\b", re.IGNORECASE),

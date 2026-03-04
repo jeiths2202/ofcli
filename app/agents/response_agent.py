@@ -163,7 +163,26 @@ class ResponseAgent(BaseAgent):
             f"[{_sanitize_doc_name(c.doc_name) if c.doc_name else 'N/A'} p.{c.page_number or '?'}] (score: {c.score:.2f})\n{c.content[:1200]}"
             for c in chunks[:5]
         )
-        prompt = f"""以下の検索結果を統合して質問に回答してください。
+
+        if plan.intent == QueryIntent.CODE:
+            prompt = f"""以下の検索結果を統合して質問に回答してください。
+検索結果に記載されたAPI・関数・構文を使用してサンプルコードを生成してください。
+
+## 検索結果
+{ctx}
+
+## 質問
+{plan.raw_query}
+
+## 回答指示
+1. API/機能の説明
+2. サンプルコード（コメント付き）
+3. 補足説明
+
+## 回答"""
+            max_tokens = 4096
+        else:
+            prompt = f"""以下の検索結果を統合して質問に回答してください。
 検索結果にない情報は追加しないでください。
 
 ## 検索結果
@@ -173,8 +192,10 @@ class ResponseAgent(BaseAgent):
 {plan.raw_query}
 
 ## 回答"""
+            max_tokens = None
+
         try:
-            answer = await self.llm.chat(prompt, temperature=0.3)
+            answer = await self.llm.chat(prompt, temperature=0.3, max_tokens=max_tokens)
             return re.sub(r"<think>.*?</think>\s*", "", answer, flags=re.DOTALL).strip()
         except Exception as e:
             logger.error(f"Final synthesis failed: {e}")

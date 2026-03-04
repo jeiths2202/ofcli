@@ -113,4 +113,6 @@ class CodeAgent(BaseAgent):
             return "cobol"
         if "asm" in raw or "assembler" in raw:
             return "asm"
+        if " c " in raw or raw.endswith(" c") or "c언어" in raw or "c言語" in raw or "c샘플" in raw or "cサンプル" in raw:
+            return "c"
         return "jcl"
