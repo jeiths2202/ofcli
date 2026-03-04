@@ -12,7 +12,7 @@ Phase 6: Response Generation (항상)
 import json
 import logging
 import time
-from typing import AsyncGenerator, Dict
+from typing import AsyncGenerator, Dict, Optional
 
 from app.agents.code_agent import CodeAgent
 from app.agents.domain_agent import DomainAgent
@@ -21,7 +21,7 @@ from app.agents.query_agent import QueryAgent
 from app.agents.response_agent import ResponseAgent
 from app.agents.search_agent import SearchAgent
 from app.core.config import get_settings
-from app.models.query import QueryPlan
+from app.models.query import DetectedLanguage, ProductMatch, QueryPlan
 from app.models.response import FinalResponse
 from app.models.search import PipelineState
 
@@ -40,7 +40,21 @@ class Orchestrator:
         self.response_agent = ResponseAgent()
         self._threshold = get_settings().FALLBACK_THRESHOLD
 
-    async def execute(self, query: str) -> FinalResponse:
+    def _apply_overrides(
+        self, plan: QueryPlan, language: Optional[str], product: Optional[str]
+    ) -> None:
+        """Apply user-specified language/product overrides to the query plan."""
+        if language and language in ("ja", "ko", "en"):
+            plan.language = DetectedLanguage(language)
+        if product:
+            if not any(p.product_id == product for p in plan.products):
+                plan.products.insert(
+                    0, ProductMatch(product_id=product, confidence=1.0, matched_keywords=["user_selected"])
+                )
+
+    async def execute(
+        self, query: str, language: Optional[str] = None, product: Optional[str] = None
+    ) -> FinalResponse:
         t0 = time.perf_counter()
         state = PipelineState(query_plan=QueryPlan(raw_query=query))
 
@@ -48,6 +62,7 @@ class Orchestrator:
         logger.info(f"[Phase 0] Analyzing: {query[:80]}...")
         await self.query_agent.execute(state)
         plan = state.query_plan
+        self._apply_overrides(plan, language, product)
         logger.info(
             f"[Phase 0] intent={plan.intent.value}, lang={plan.language.value}, "
             f"products={[p.product_id for p in plan.products[:3]]}, "
@@ -99,7 +114,9 @@ class Orchestrator:
         )
         return response
 
-    async def execute_streaming(self, query: str) -> AsyncGenerator[Dict, None]:
+    async def execute_streaming(
+        self, query: str, language: Optional[str] = None, product: Optional[str] = None
+    ) -> AsyncGenerator[Dict, None]:
         """SSE streaming — yield phase events + final answer"""
         t0 = time.perf_counter()
         state = PipelineState(query_plan=QueryPlan(raw_query=query))
@@ -108,6 +125,7 @@ class Orchestrator:
         pt0 = time.perf_counter()
         await self.query_agent.execute(state)
         plan = state.query_plan
+        self._apply_overrides(plan, language, product)
         yield {"event": "phase", "data": json.dumps({
             "phase": 0, "name": "query_analysis", "status": "complete",
             "time_ms": int((time.perf_counter() - pt0) * 1000),

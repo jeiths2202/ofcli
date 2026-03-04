@@ -82,6 +82,22 @@ const selLanguage = /** @type {HTMLSelectElement} */ ($("#selLanguage"));
 
 let isStreaming = false;
 
+// ── Fallback product list (always available even without API) ──
+const DEFAULT_PRODUCTS = [
+  { id: "mvs_openframe_7.1", name: "MVS OpenFrame 7.1" },
+  { id: "openframe_hidb_7", name: "OpenFrame HiDB 7 (IMS)" },
+  { id: "openframe_osc_7", name: "OpenFrame OSC 7 (CICS)" },
+  { id: "tibero_7", name: "Tibero 7" },
+  { id: "ofasm_4", name: "OFASM 4" },
+  { id: "ofcobol_4", name: "OFCOBOL 4" },
+  { id: "tmax_6", name: "Tmax 6" },
+  { id: "jeus_8", name: "JEUS 8" },
+  { id: "webtob_5", name: "WebtoB 5" },
+  { id: "ofstudio_7", name: "OFStudio 7" },
+  { id: "protrieve_7", name: "Protrieve 7" },
+  { id: "xsp_openframe_7", name: "XSP OpenFrame 7 (Fujitsu)" },
+];
+
 // ── Phase name map ──
 const PHASE_NAMES = {
   query_analysis: "Query Analysis",
@@ -349,6 +365,7 @@ function showAnswer(data) {
   while (container.firstChild) {
     msgDiv.appendChild(container.firstChild);
   }
+  linkifyImsIds(msgDiv);
   messagesEl.appendChild(msgDiv);
   scrollToBottom();
 }
@@ -370,6 +387,60 @@ function showDone(data) {
 
 function showError(message) {
   addMessage("error", message);
+}
+
+// ── IMS link helper ──
+
+const IMS_PATTERN = /ims_issue_(\d+)/g;
+
+/**
+ * Replace ims_issue_XXXXX text nodes in a DOM tree with clickable links
+ * that open the TmaxSoft IMS issue tracker.
+ */
+function linkifyImsIds(container) {
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  const nodesToReplace = [];
+
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (IMS_PATTERN.test(node.textContent)) {
+      nodesToReplace.push(node);
+    }
+    IMS_PATTERN.lastIndex = 0;
+  }
+
+  for (const textNode of nodesToReplace) {
+    const frag = document.createDocumentFragment();
+    const text = textNode.textContent;
+    let lastIdx = 0;
+    let match;
+
+    IMS_PATTERN.lastIndex = 0;
+    while ((match = IMS_PATTERN.exec(text)) !== null) {
+      if (match.index > lastIdx) {
+        frag.appendChild(document.createTextNode(text.slice(lastIdx, match.index)));
+      }
+      const link = document.createElement("a");
+      link.className = "ims-link";
+      link.textContent = match[0];
+      link.title = "Open IMS #" + match[1];
+      link.href = "#";
+      const issueId = match[1];
+      link.addEventListener("click", function (e) {
+        e.preventDefault();
+        var url = "https://ims.tmaxsoft.com/tody/ims/issue/issueView.do?issueId=" + issueId + "&menuCode=issue_list";
+        vscode.postMessage({ type: "openExternal", url: url });
+      });
+      frag.appendChild(link);
+      lastIdx = IMS_PATTERN.lastIndex;
+    }
+
+    if (lastIdx < text.length) {
+      frag.appendChild(document.createTextNode(text.slice(lastIdx)));
+    }
+
+    textNode.parentNode.replaceChild(frag, textNode);
+  }
 }
 
 // ── Utilities ──
@@ -403,5 +474,6 @@ queryInput.addEventListener("keydown", (e) => {
 
 queryInput.addEventListener("input", autoResize);
 
-// ── Init: tell extension we're ready ──
+// ── Init: load fallback products immediately, then tell extension we're ready ──
+updateProducts(DEFAULT_PRODUCTS);
 vscode.postMessage({ type: "ready" });

@@ -96,4 +96,5 @@ export type WebviewToExtensionMessage =
   | { type: "ready" }
   | { type: "query"; query: string; language: string; product: string }
   | { type: "cancel" }
-  | { type: "openSettings" };
+  | { type: "openSettings" }
+  | { type: "openExternal"; url: string };

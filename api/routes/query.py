@@ -50,7 +50,7 @@ def _to_query_response(resp, req: QueryRequest) -> QueryResponse:
 @router.post("/query", response_model=QueryResponse)
 async def query(req: QueryRequest, orch: Orchestrator = Depends(get_orchestrator)):
     try:
-        resp = await orch.execute(req.query)
+        resp = await orch.execute(req.query, language=req.language, product=req.product)
         return _to_query_response(resp, req)
     except Exception as e:
         logger.error(f"Query failed: {e}", exc_info=True)
@@ -61,7 +61,7 @@ async def query(req: QueryRequest, orch: Orchestrator = Depends(get_orchestrator
 async def query_stream(req: QueryRequest, orch: Orchestrator = Depends(get_orchestrator)):
     async def event_generator():
         try:
-            async for event in orch.execute_streaming(req.query):
+            async for event in orch.execute_streaming(req.query, language=req.language, product=req.product):
                 yield event
         except Exception as e:
             logger.error(f"Stream failed: {e}", exc_info=True)

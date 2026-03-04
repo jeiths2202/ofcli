@@ -79,6 +79,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
           "ofkms"
         );
         break;
+      case "openExternal":
+        vscode.env.openExternal(vscode.Uri.parse(msg.url));
+        break;
     }
   }
 
