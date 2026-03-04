@@ -8,6 +8,8 @@ import logging
 import re
 import time
 
+_DOC_NAME_SANITIZE_RE = re.compile(r'\s*\([^)]*\)\s*')
+
 from app.agents.base import BaseAgent
 from app.agents.tools.qwen3_client import Qwen3Client
 from app.models.query import ComparisonTarget, QueryIntent, QueryPlan
@@ -97,7 +99,8 @@ class DomainAgent(BaseAgent):
         """구조화 쿼리: 검색결과 직접 정리 (LLM 불필요)"""
         parts = []
         for i, c in enumerate(chunks[:5]):
-            src = f"[{c.doc_name or 'N/A'}"
+            raw_name = _DOC_NAME_SANITIZE_RE.sub('', c.doc_name) if c.doc_name else 'N/A'
+            src = f"[{raw_name}"
             if c.page_number:
                 src += f" p.{c.page_number}"
             src += "]"
@@ -121,7 +124,7 @@ class DomainAgent(BaseAgent):
         """비구조화 쿼리: Qwen3 LLM + RAG 컨텍스트"""
         ctx_parts = []
         for c in chunks[:5]:
-            src = c.doc_name or "unknown"
+            src = _DOC_NAME_SANITIZE_RE.sub('', c.doc_name) if c.doc_name else "unknown"
             page = f" p.{c.page_number}" if c.page_number else ""
             ctx_parts.append(f"[Source: {src}{page}]\n{c.content[:1500]}")
 

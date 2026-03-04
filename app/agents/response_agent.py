@@ -22,6 +22,15 @@ from app.models.search import PipelineState, SearchChunk, SearchSource
 logger = logging.getLogger(__name__)
 
 
+# ─── 出典名サニタイズ: 顧客名等を除去 ───
+_DOC_NAME_SANITIZE_RE = re.compile(r'\s*\([^)]*\)\s*')
+
+
+def _sanitize_doc_name(name: str) -> str:
+    """ドキュメント名から括弧付き顧客名等を除去する"""
+    return _DOC_NAME_SANITIZE_RE.sub('', name).strip()
+
+
 # ─── 用語教正辞典 (v1 ResponseVerifier から継承) ───
 
 TERM_CORRECTIONS: Dict[str, str] = {
@@ -151,7 +160,7 @@ class ResponseAgent(BaseAgent):
         self, plan: QueryPlan, chunks: List[SearchChunk]
     ) -> str:
         ctx = "\n\n---\n\n".join(
-            f"[{c.doc_name or 'N/A'} p.{c.page_number or '?'}] (score: {c.score:.2f})\n{c.content[:1200]}"
+            f"[{_sanitize_doc_name(c.doc_name) if c.doc_name else 'N/A'} p.{c.page_number or '?'}] (score: {c.score:.2f})\n{c.content[:1200]}"
             for c in chunks[:5]
         )
         prompt = f"""以下の検索結果を統合して質問に回答してください。
@@ -206,7 +215,7 @@ class ResponseAgent(BaseAgent):
                 continue
             seen.add(key)
             sources.append(SourceAttribution(
-                doc_name=c.doc_name or "unknown",
+                doc_name=_sanitize_doc_name(c.doc_name) if c.doc_name else "unknown",
                 page=c.page_number,
                 section=c.section,
                 url=c.metadata.get("url") if c.metadata else None,
